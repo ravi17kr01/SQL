@@ -1,0 +1,30 @@
+https://www.youtube.com/watch?v=ougF0bhY424&list=PLBTZqjSKn0IcR6DhoLUibOG8frnWbZdSH&index=24
+
+select category, product_name, sales from
+(
+Select category, product_name, sum(sales) as sales,
+rank() over(partition by category order by sum(sales) desc) rnk
+from Orders group by category, product_name
+) as temp_table 
+where temp_table.rnk<6
+
+
+
+using dense_rank:
+
+with top_sales_per_cat as(
+select 
+	category, 
+    Product_Name ,
+    sum(Sales) as Total_Sales,
+    DENSE_RANK() over(partition by Category order by SUM(sales) desc) as rn
+from 
+	market_star_schema.`sample - superstore`
+group by 
+	Category,Product_Name
+)
+    
+select * from top_sales_per_cat
+where rn<=5;
+
+PS : firs group by will work and then aggregation 
