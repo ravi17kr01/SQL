@@ -1,0 +1,81 @@
+https://www.youtube.com/watch?v=PE5MZW1CxOI&list=PLBTZqjSKn0IcR6DhoLUibOG8frnWbZdSH&index=23
+
+*************Approach 1 : CTE and union ALL**************
+
+WITH left_split AS (
+SELECT user_id,SUBSTRING_INDEX(filter_room_types,',',1) AS room_types  
+FROM airbnb_searches
+),
+
+right_split AS(
+SELECT user_id,SUBSTRING_INDEX(filter_room_types,',',-1) AS room_types 
+FROM airbnb_searches 
+WHERE filter_room_types LIKE '%,%'
+),
+
+combine_left_And_Right AS (
+SELECT * FROM left_split UNION ALL SELECT * FROM right_split
+)
+
+SELECT room_types,count(*) AS 'count'  FROM combine_left_And_Right GROUP BY room_types ORDER BY count DESC ;
+
+
+************************************************************************************************************8
+
+with cte as (
+select sum(case when filter_room_types like '%private%' then 1 else 0 end) as pr,
+sum(case when filter_room_types like '%entire%' then 1 else 0 end) as en,
+sum(case when filter_room_types like '%shared%' then 1 else 0 end) as sh
+from airbnb_searches )
+select 'private type' as  room_type,pr from cte as val 
+union all
+select 'entry type' as  room_type,en from cte as val 
+union all
+select 'shared type' as  room_type,sh from cte as val
+
+**************************************************************************************************************
+with room as
+(select sum(case when filter_room_types like '%entire%' then 1 else 0 end) as en,
+sum(case when filter_room_types like '%private%' then 1 else 0 end) as pr,
+sum(case when filter_room_types like '%shared%' then 1 else 0 end) as sh
+from airbnb_searches)
+select 'entire home' as  value,en cnt from room
+union all
+select 'private room' as value,pr cnt from room
+union all
+select 'shared room' as value,sh cnt from room
+order by cnt desc;
+
+
+
+ with cte_table as 
+(select count(case when filter_room_types like '%entire home%' then 1 End) as 'entire home',
+count(case when filter_room_types like '%private room%' then 1 End) as 'private room',
+count(case when filter_room_types like '%shared room%' then 1 End) as 'shared room'
+from 
+airbnb_searches)
+Select value, i as count_room_type from cte_table
+
+
+*************Approach 2 : substring_index***************
+
+
+*************Approach 3 : pivot************************
+unpivot
+(
+ i for value in ([entire home],[private room],[shared room])
+) as unpivot_table
+ORDER By i DESC;
+
+**********MISC***********
+
+with cte as (
+select date_searched, sum(case when filter_room_types like '%entire home%'  then 1 else 0 end) as 'total_entire_home_cnt', 
+					  sum(case when filter_room_types like '%private room%'  then 1 else 0 end) as 'total_private_wroom_cnt',
+                      sum(case when filter_room_types like '%shared room%'  then 1 else 0 end) as 'total_shared_room_cnt'
+from airbnb_searches
+group by date_searched) , cte2 as (
+
+select sum(total_entire_home_cnt) as 'entire_room', sum(total_private_wroom_cnt) as 'private_room', sum(total_shared_room_cnt) as 'shared_room'
+from cte )
+select * from cte2;
